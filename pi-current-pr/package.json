@@ -1,0 +1,15 @@
+{
+  "name": "pi-current-pr",
+  "version": "0.1.0",
+  "description": "A pi extension that shows the current GitHub pull request in a widget.",
+  "type": "module",
+  "keywords": ["pi-package"],
+  "files": ["extensions"],
+  "pi": {
+    "extensions": ["./extensions"]
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*"
+  }
+}
