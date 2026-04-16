@@ -11,28 +11,8 @@ A pi extension package that shows the current GitHub pull request in a widget ab
 
 ## Install
 
-### Local
-
 ```bash
-pi install /home/schani/Work/pi-extensions/pi-current-pr
-```
-
-### Development
-
-You can also test it directly from the extension source:
-
-```bash
-pi -e /home/schani/Work/pi-extensions/pi-current-pr/extensions/current-pr-widget.ts
-```
-
-## Package layout
-
-```text
-pi-current-pr/
-  package.json
-  README.md
-  extensions/
-    current-pr-widget.ts
+pi install npm:pi-current-pr
 ```
 
 ## Notes
