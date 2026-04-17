@@ -1,12 +1,22 @@
 {
   "name": "pi-current-pr",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pi extension that shows the current GitHub pull request in a widget",
   "type": "module",
   "keywords": ["pi-package"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/schani/pi-extensions.git",
+    "directory": "pi-current-pr"
+  },
+  "homepage": "https://github.com/schani/pi-extensions/tree/main/pi-current-pr#readme",
+  "bugs": {
+    "url": "https://github.com/schani/pi-extensions/issues"
+  },
   "files": ["extensions"],
   "pi": {
-    "extensions": ["./extensions"]
+    "extensions": ["./extensions"],
+    "image": "https://raw.githubusercontent.com/schani/pi-extensions/main/pi-current-pr/screenshot.png"
   },
   "peerDependencies": {
     "@mariozechner/pi-coding-agent": "*",

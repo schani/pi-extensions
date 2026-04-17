@@ -2,6 +2,10 @@
 
 A pi extension package that shows the current GitHub pull request in a widget above the editor.
 
+This is what it looks like, together with [pi-powerline-footer](https://www.npmjs.com/package/pi-powerline-footer):
+
+![screenshot](https://raw.githubusercontent.com/schani/pi-extensions/main/pi-current-pr/screenshot.png)
+
 ## Features
 
 - Shows the current PR title and URL
