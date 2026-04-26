@@ -7,7 +7,7 @@ import {
 	buildMoodPrompt,
 	CUSTOM_TYPE,
 	DEFAULT_MODEL_PRIORITY,
-	evaluationByteLengthFromEntries,
+	evaluationScheduleFromEntries,
 	extractJsonObject,
 	findMatchingModels,
 	lastUtf8Bytes,
@@ -205,9 +205,10 @@ async function maybeEvaluate(ctx: ExtensionContext, pi: ExtensionAPI, liveMessag
 	latestLiveMessage = liveMessage;
 	const branch = ctx.sessionManager.getBranch() as any[];
 	const conversationText = buildConversationTextFromEntries(branch, liveMessage);
-	const totalBytes = evaluationByteLengthFromEntries(branch, liveMessage);
+	const schedule = evaluationScheduleFromEntries(branch, liveMessage);
+	const totalBytes = schedule.totalBytes;
 
-	if (!shouldEvaluate(totalBytes, lastAttemptedAtBytes, force)) {
+	if (!shouldEvaluate(totalBytes, lastAttemptedAtBytes, force, schedule.latestUserStartBytes)) {
 		renderStatus(ctx);
 		return;
 	}

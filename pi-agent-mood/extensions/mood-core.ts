@@ -9,7 +9,7 @@ export const SMALL_UPDATE_STEP_BYTES = 512;
 export const NORMAL_UPDATE_STEP_BYTES = 2 * 1024;
 export const SNAPSHOT_BYTES = 10 * 1024;
 export const SHELL_COMMAND_PREVIEW_BYTES = 256;
-export const TOOL_CALL_EVALUATION_BYTES = 128;
+export const TOOL_CALL_EVALUATION_BYTES = 256;
 
 export type MoodResult = {
 	activity: {
@@ -129,10 +129,13 @@ export function updateStepFor(totalBytes: number): number {
 	return totalBytes < SMALL_CONVERSATION_BYTES ? SMALL_UPDATE_STEP_BYTES : NORMAL_UPDATE_STEP_BYTES;
 }
 
-export function shouldEvaluate(totalBytes: number, lastAttemptedAtBytes: number, force = false): boolean {
+export function shouldEvaluate(totalBytes: number, lastAttemptedAtBytes: number, force = false, resetAtBytes = 0): boolean {
 	if (force) return totalBytes > 0;
-	const step = updateStepFor(totalBytes);
-	return totalBytes >= step && totalBytes - lastAttemptedAtBytes >= step;
+	const reset = Math.max(0, Math.min(resetAtBytes, totalBytes));
+	const bytesSinceReset = totalBytes - reset;
+	const bytesSinceLastAttempt = totalBytes - Math.max(lastAttemptedAtBytes, reset);
+	const step = updateStepFor(bytesSinceReset);
+	return bytesSinceReset >= step && bytesSinceLastAttempt >= step;
 }
 
 function pathFromArgs(args: any): string | undefined {
@@ -344,20 +347,42 @@ export function evaluationBytesForMessage(message: any): number {
 	return total;
 }
 
-export function evaluationByteLengthFromEntries(entries: any[], liveMessage?: unknown): number {
-	let total = 0;
+export type EvaluationSchedule = {
+	totalBytes: number;
+	latestUserStartBytes: number;
+	bytesSinceLatestUser: number;
+	stepBytes: number;
+};
+
+export function evaluationScheduleFromEntries(entries: any[], liveMessage?: unknown): EvaluationSchedule {
+	let totalBytes = 0;
+	let latestUserStartBytes = 0;
 	let lastRendered: string | undefined;
 	for (const entry of entries) {
 		if (entry.type !== "message" || !entry.message) continue;
-		total += evaluationBytesForMessage(entry.message);
+		if (entry.message.role === "user") latestUserStartBytes = totalBytes;
+		totalBytes += evaluationBytesForMessage(entry.message);
 		lastRendered = renderMessage(entry.message);
 	}
 
 	const liveRendered = renderMessage(liveMessage);
 	if (liveRendered && liveRendered !== lastRendered) {
-		total += evaluationBytesForMessage(liveMessage);
+		const message = liveMessage as any;
+		if (message?.role === "user") latestUserStartBytes = totalBytes;
+		totalBytes += evaluationBytesForMessage(liveMessage);
 	}
-	return total;
+
+	const bytesSinceLatestUser = totalBytes - latestUserStartBytes;
+	return {
+		totalBytes,
+		latestUserStartBytes,
+		bytesSinceLatestUser,
+		stepBytes: updateStepFor(bytesSinceLatestUser),
+	};
+}
+
+export function evaluationByteLengthFromEntries(entries: any[], liveMessage?: unknown): number {
+	return evaluationScheduleFromEntries(entries, liveMessage).totalBytes;
 }
 
 export function buildMoodPrompt(snapshot: string): string {

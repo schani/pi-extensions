@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
 	buildConversationTextFromEntries,
 	evaluationByteLengthFromEntries,
+	evaluationScheduleFromEntries,
 	findMatchingModels,
 	lastUtf8Bytes,
 	renderMessage,
@@ -41,6 +42,14 @@ test("shouldEvaluate uses 512 B steps below 5 KB and 2 KB steps at/above 5 KB", 
 	assert.equal(shouldEvaluate(6 * 1024, 4 * 1024), true);
 });
 
+test("shouldEvaluate applies small thresholds after a user-message reset point", () => {
+	assert.equal(shouldEvaluate(100 * 1024 + 511, 99 * 1024, false, 100 * 1024), false);
+	assert.equal(shouldEvaluate(100 * 1024 + 512, 99 * 1024, false, 100 * 1024), true);
+	assert.equal(shouldEvaluate(100 * 1024 + 1023, 100 * 1024 + 512, false, 100 * 1024), false);
+	assert.equal(shouldEvaluate(100 * 1024 + 1024, 100 * 1024 + 512, false, 100 * 1024), true);
+	assert.equal(shouldEvaluate(100 * 1024 + 6 * 1024, 100 * 1024 + 4 * 1024, false, 100 * 1024), true);
+});
+
 test("UTF-8 truncation never splits multibyte characters", () => {
 	const text = "abc🙂def";
 	const truncated = truncateUtf8Bytes(text, 6);
@@ -51,7 +60,7 @@ test("UTF-8 truncation never splits multibyte characters", () => {
 	assert.equal(tail, "def");
 });
 
-test("evaluationByteLengthFromEntries counts every assistant tool call as 128 bytes", () => {
+test("evaluationByteLengthFromEntries counts every assistant tool call as 256 bytes", () => {
 	const total = evaluationByteLengthFromEntries([
 		{
 			type: "message",
@@ -66,7 +75,33 @@ test("evaluationByteLengthFromEntries counts every assistant tool call as 128 by
 		},
 	]);
 
-	assert.equal(total, 5 + 128 * 2);
+	assert.equal(total, 5 + 256 * 2);
+});
+
+test("evaluationScheduleFromEntries resets cadence at the latest user message", () => {
+	const entries = [
+		{
+			type: "message",
+			message: { role: "user", content: "u".repeat(1000) },
+		},
+		{
+			type: "message",
+			message: { role: "assistant", content: "a".repeat(10 * 1024) },
+		},
+		{
+			type: "message",
+			message: { role: "user", content: "next" },
+		},
+		{
+			type: "message",
+			message: { role: "assistant", content: "ok" },
+		},
+	];
+
+	const schedule = evaluationScheduleFromEntries(entries);
+	assert.equal(schedule.latestUserStartBytes, 1000 + 10 * 1024);
+	assert.equal(schedule.bytesSinceLatestUser, 6);
+	assert.equal(schedule.stepBytes, 512);
 });
 
 test("renderToolCall includes read path", () => {

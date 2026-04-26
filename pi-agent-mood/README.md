@@ -46,10 +46,12 @@ pi --agent-mood-models google/gemini-3.1-flash-lite-preview,anthropic/claude-hai
 
 The extension recomputes mood from message growth:
 
-- While the conversation is under 5 KB: every 512 B
-- Once the conversation reaches 5 KB: every 2 KB
-- Every assistant tool call counts as 128 B for recompute scheduling
+- After each user message, while the current turn is under 5 KB: every 512 B
+- Once the current turn reaches 5 KB: every 2 KB
+- Every assistant tool call counts as 256 B for recompute scheduling
 - Each model call receives the latest 10 KB of rendered snapshot
+
+The threshold window resets at the latest user message, so long sessions still get fast 512 B mood updates at the start of every new user turn. In other words, scheduling is based on bytes accumulated since the latest user message, not total session size. The current-turn byte count includes the latest user message, assistant text, and assistant tool-call metadata. It does not immediately recompute just because a new user message arrived; it recomputes once enough current-turn bytes have accumulated, or immediately when forced with `/mood-refresh`.
 
 Tool result output does not count toward the recompute threshold, and full tool output is never sent to the mood model.
 
