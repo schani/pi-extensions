@@ -76,9 +76,19 @@ function cleanNumber01(value: unknown): number | undefined {
 	return Math.max(0, Math.min(1, value));
 }
 
+function entryUpdatedAt(entry: any, state: any): number | undefined {
+	if (typeof state?.updatedAt === "number") return state.updatedAt;
+	if (typeof entry?.timestamp === "string") {
+		const timestamp = Date.parse(entry.timestamp);
+		if (Number.isFinite(timestamp)) return timestamp;
+	}
+	return undefined;
+}
+
 function moodFromEntry(entry: any): MoodPayload | undefined {
 	if (!entry || entry.type !== "custom" || entry.customType !== MOOD_CUSTOM_TYPE) return undefined;
 	const state = entry.data as any;
+	const updatedAt = entryUpdatedAt(entry, state);
 	const result = state?.mood;
 	if (result && typeof result === "object") {
 		return {
@@ -89,13 +99,18 @@ function moodFromEntry(entry: any): MoodPayload | undefined {
 			summary: cleanString(result.summary),
 			confidence: cleanNumber01(result.confidence),
 			model: cleanString(state.model),
-			updatedAt: typeof state.updatedAt === "number" ? state.updatedAt : undefined,
+			updatedAt,
 		};
 	}
 	if (typeof state?.error === "string") {
-		return { error: state.error };
+		return { error: state.error, updatedAt };
 	}
-	return undefined;
+
+	// A newer agent-mood entry with no mood/error is an intentional reset from
+	// pi-agent-mood (for example, immediately after a new user message). Treat it
+	// as authoritative so the companion clears the previous mood instead of
+	// scanning backward and displaying stale state.
+	return { updatedAt };
 }
 
 function latestMood(entries: any[]): MoodPayload | undefined {
