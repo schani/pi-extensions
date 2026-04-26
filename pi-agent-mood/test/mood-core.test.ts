@@ -7,6 +7,7 @@ import {
 	evaluationScheduleFromEntries,
 	findMatchingModels,
 	lastUtf8Bytes,
+	normalizeMoodResult,
 	renderMessage,
 	renderToolCall,
 	shouldEvaluate,
@@ -62,6 +63,14 @@ test("UTF-8 truncation never splits multibyte characters", () => {
 
 	const tail = lastUtf8Bytes(text, 6);
 	assert.equal(tail, "def");
+});
+
+test("normalizeMoodResult does not fabricate missing words or emoji", () => {
+	assert.deepEqual(normalizeMoodResult({ activity: { word: "Reading" }, mood: { emoji: "🤔" } }), {
+		activity: { word: "reading" },
+		mood: { emoji: "🤔" },
+	});
+	assert.deepEqual(normalizeMoodResult({}), {});
 });
 
 test("evaluationByteLengthFromEntries counts every assistant tool call as 256 bytes", () => {

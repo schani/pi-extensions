@@ -13,16 +13,16 @@ export const SHELL_COMMAND_PREVIEW_BYTES = 256;
 export const TOOL_CALL_EVALUATION_BYTES = 256;
 
 export type MoodResult = {
-	activity: {
-		word: string;
-		emoji: string;
+	activity?: {
+		word?: string;
+		emoji?: string;
 	};
-	mood: {
-		word: string;
-		emoji: string;
+	mood?: {
+		word?: string;
+		emoji?: string;
 	};
-	summary: string;
-	confidence: number;
+	summary?: string;
+	confidence?: number;
 };
 
 export type MoodState = {
@@ -399,9 +399,9 @@ export function buildMoodPrompt(snapshot: string): string {
 		"The agent does not have real feelings; 'mood' is just a playful UI label for its apparent current stance.",
 		"Choose your own one-word activity label and one-word mood label.",
 		"Choose one emoji for the activity and one emoji for the mood.",
-		"Be honest in your assessment, for example it's ok to say the agent is frustrated or confused, but also ok to say it's happy if that's what it seems like.",
+		"Be critical in your assessment, for example it's ok to say the agent is frustrated or confused, but also ok to say it's happy if that's what it seems like.",
 		"Return only JSON with this exact shape:",
-		'{"activity":{"word":"one-word-lowercase","emoji":"emoji"},"mood":{"word":"one-word-lowercase","emoji":"emoji"},"summary":"short reason, max 12 words","confidence":0.0}',
+		'{"activity":{"word":"one-word-lowercase","emoji":"emoji"},"mood":{"word":"one-word-lowercase","emoji":"emoji"},"summary":"short reason, max 12 words","confidence":0.8}',
 		"",
 		"Recent transcript, truncated to the latest 10 KB. It uses structured tags: <user_message>, <assistant_message>, <tool_call>, <tool_result>, <user_bash>, <branch_summary>, and <compaction_summary>.",
 		"<transcript>",
@@ -423,35 +423,39 @@ export function extractJsonObject(text: string): string {
 	return trimmed;
 }
 
-function cleanOneWord(value: unknown, fallback: string): string {
-	if (typeof value !== "string") return fallback;
+function cleanOneWord(value: unknown): string | undefined {
+	if (typeof value !== "string") return undefined;
 	const cleaned = value.trim().toLowerCase().replace(/[^\p{L}\p{N}_-]+/gu, "-").replace(/^-+|-+$/g, "");
-	return cleaned || fallback;
+	return cleaned || undefined;
 }
 
-function cleanShortText(value: unknown): string {
-	if (typeof value !== "string") return "";
-	return value.trim().replace(/\s+/g, " ").slice(0, 120);
+function cleanShortText(value: unknown): string | undefined {
+	if (typeof value !== "string") return undefined;
+	return value.trim().replace(/\s+/g, " ").slice(0, 120) || undefined;
 }
 
-function cleanEmoji(value: unknown, fallback: string): string {
-	if (typeof value !== "string") return fallback;
-	return value.trim().slice(0, 8) || fallback;
+function cleanEmoji(value: unknown): string | undefined {
+	if (typeof value !== "string") return undefined;
+	return value.trim().slice(0, 8) || undefined;
+}
+
+function maybePair(word: string | undefined, emoji: string | undefined): { word?: string; emoji?: string } | undefined {
+	const pair: { word?: string; emoji?: string } = {};
+	if (word !== undefined) pair.word = word;
+	if (emoji !== undefined) pair.emoji = emoji;
+	return pair.word !== undefined || pair.emoji !== undefined ? pair : undefined;
 }
 
 export function normalizeMoodResult(value: unknown): MoodResult {
 	const data = value as any;
-	const confidence = typeof data?.confidence === "number" ? Math.max(0, Math.min(1, data.confidence)) : 0;
-	return {
-		activity: {
-			word: cleanOneWord(data?.activity?.word, "working"),
-			emoji: cleanEmoji(data?.activity?.emoji, "⚙️"),
-		},
-		mood: {
-			word: cleanOneWord(data?.mood?.word, "focused"),
-			emoji: cleanEmoji(data?.mood?.emoji, "🎯"),
-		},
-		summary: cleanShortText(data?.summary),
-		confidence,
-	};
+	const result: MoodResult = {};
+	const activity = maybePair(cleanOneWord(data?.activity?.word), cleanEmoji(data?.activity?.emoji));
+	const mood = maybePair(cleanOneWord(data?.mood?.word), cleanEmoji(data?.mood?.emoji));
+	const summary = cleanShortText(data?.summary);
+
+	if (activity) result.activity = activity;
+	if (mood) result.mood = mood;
+	if (summary !== undefined) result.summary = summary;
+	if (typeof data?.confidence === "number") result.confidence = Math.max(0, Math.min(1, data.confidence));
+	return result;
 }

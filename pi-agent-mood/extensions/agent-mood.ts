@@ -14,6 +14,7 @@ import {
 	normalizeMoodResult,
 	shouldEvaluate,
 	SNAPSHOT_BYTES,
+	type MoodResult,
 	type MoodState,
 } from "./mood-core.ts";
 
@@ -171,12 +172,23 @@ async function askMoodModel(ctx: ExtensionContext, pi: ExtensionAPI, snapshot: s
 	};
 }
 
+function formatMoodPart(part: { word?: string; emoji?: string } | undefined): string {
+	return [part?.emoji, part?.word].filter(Boolean).join(" ").trim();
+}
+
+function formatMoodLine(mood: MoodResult): string {
+	return [formatMoodPart(mood.activity), formatMoodPart(mood.mood)].filter(Boolean).join(" / ") || "mood: no model output";
+}
+
+function formatConfidence(confidence: number | undefined): string {
+	return typeof confidence === "number" ? `${Math.round(confidence * 100)}%` : "not provided";
+}
+
 function renderStatus(ctx: ExtensionContext) {
 	if (!ctx.hasUI) return;
 
 	if (currentState.mood) {
-		const { activity, mood } = currentState.mood;
-		ctx.ui.setStatus(CUSTOM_TYPE, `${activity.emoji} ${activity.word} / ${mood.emoji} ${mood.word}`);
+		ctx.ui.setStatus(CUSTOM_TYPE, formatMoodLine(currentState.mood));
 	} else if (currentState.error) {
 		ctx.ui.setStatus(CUSTOM_TYPE, currentState.error.startsWith("No configured mood model") ? "mood: no model" : "mood: error");
 	} else {
@@ -189,11 +201,10 @@ function renderStatus(ctx: ExtensionContext) {
 	}
 
 	if (currentState.mood) {
-		const confidence = Math.round(currentState.mood.confidence * 100);
 		ctx.ui.setWidget(CUSTOM_TYPE, [
-			`Agent mood: ${currentState.mood.activity.emoji} ${currentState.mood.activity.word} / ${currentState.mood.mood.emoji} ${currentState.mood.mood.word}`,
+			`Agent mood: ${formatMoodLine(currentState.mood)}`,
 			currentState.mood.summary ? `Why: ${currentState.mood.summary}` : "Why: model did not provide a reason",
-			`Confidence: ${confidence}%${currentState.model ? ` • ${currentState.model}` : ""}`,
+			`Confidence: ${formatConfidence(currentState.mood.confidence)}${currentState.model ? ` • ${currentState.model}` : ""}`,
 		]);
 	} else {
 		ctx.ui.setWidget(CUSTOM_TYPE, [currentState.error ?? "Waiting for enough conversation to classify mood..."]);
@@ -349,9 +360,8 @@ export default function agentMoodExtension(pi: ExtensionAPI) {
 			renderStatus(ctx);
 			if (!ctx.hasUI) return;
 			if (currentState.mood) {
-				const confidence = Math.round(currentState.mood.confidence * 100);
 				ctx.ui.notify(
-					`${currentState.mood.activity.emoji} ${currentState.mood.activity.word} / ${currentState.mood.mood.emoji} ${currentState.mood.mood.word} (${confidence}%)`,
+					`${formatMoodLine(currentState.mood)} (${formatConfidence(currentState.mood.confidence)})`,
 					"info",
 				);
 			} else {
