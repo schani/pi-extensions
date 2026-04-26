@@ -59,7 +59,15 @@ Tool result output does not count toward the recompute threshold, and full tool 
 
 ## Snapshot contents
 
-The classifier sees user/assistant text and compact tool metadata:
+The classifier sees user/assistant text and compact tool metadata as structured tags:
+
+- `<user_message>` and `<assistant_message>` contain message text in CDATA
+- `<tool_call>` contains compact call metadata
+- `<tool_result>` contains compact result metadata
+- `<user_bash>` records user-run shell commands
+- `<branch_summary>` and `<compaction_summary>` preserve summarized context
+
+Tool metadata includes:
 
 - `read`: file path and available read byte counts
 - `write`: file path and content byte count

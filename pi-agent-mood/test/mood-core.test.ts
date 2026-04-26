@@ -111,14 +111,14 @@ test("evaluationScheduleFromEntries resets cadence at the latest user message", 
 test("renderToolCall includes read path", () => {
 	assert.equal(
 		renderToolCall({ type: "toolCall", name: "read", arguments: { path: "src/index.ts" } }),
-		'Assistant used tool: read (path="src/index.ts")',
+		'<tool_call name="read" path="src/index.ts" />',
 	);
 });
 
 test("renderToolCall includes write path and content byte count", () => {
 	assert.equal(
 		renderToolCall({ type: "toolCall", name: "write", arguments: { path: "out.txt", content: "hello" } }),
-		'Assistant used tool: write (path="out.txt", write=5 B)',
+		'<tool_call name="write" path="out.txt" write_bytes="5" />',
 	);
 });
 
@@ -126,8 +126,8 @@ test("renderToolCall truncates bash commands to 256 bytes and reports full lengt
 	const command = "x".repeat(300);
 	const rendered = renderToolCall({ type: "toolCall", name: "bash", arguments: { command } });
 
-	assert.match(rendered ?? "", /^Assistant used tool: bash \(command="x+/);
-	assert.match(rendered ?? "", /… \(300 B total\)\)$/);
+	assert.match(rendered ?? "", /^<tool_call name="bash" command="x+/);
+	assert.match(rendered ?? "", /command_bytes="300" truncated="true" \/>$/);
 	assert.equal(rendered!.includes(command), false);
 });
 
@@ -140,13 +140,13 @@ test("renderMessage includes read result byte metadata when truncation details a
 		details: { truncation: { totalBytes: 1234 } },
 	});
 
-	assert.equal(rendered, "Tool happened: read (success, read=1.2 KB, shown=5 B)");
+	assert.equal(rendered, '<tool_result name="read" status="success" read_bytes="1234" shown_bytes="5" />');
 });
 
 test("renderToolCall includes search pattern and scope", () => {
 	assert.equal(
 		renderToolCall({ type: "toolCall", name: "grep", arguments: { pattern: "TODO", path: "src", glob: "*.ts" } }),
-		'Assistant used tool: grep (pattern="TODO", path="src", glob="*.ts")',
+		'<tool_call name="grep" pattern="TODO" path="src" glob="*.ts" />',
 	);
 });
 
@@ -158,7 +158,7 @@ test("renderMessage includes grep result counts", () => {
 		content: [{ type: "text", text: "src/a.ts:1: TODO one\nsrc/b.ts:2: TODO two\n[notice]" }],
 	});
 
-	assert.equal(rendered, "Tool happened: grep (success, results=2)");
+	assert.equal(rendered, '<tool_result name="grep" status="success" results="2" />');
 });
 
 test("renderMessage reports grep lower bound when match limit was reached", () => {
@@ -170,7 +170,7 @@ test("renderMessage reports grep lower bound when match limit was reached", () =
 		details: { matchLimitReached: 100 },
 	});
 
-	assert.equal(rendered, "Tool happened: grep (success, results>=100)");
+	assert.equal(rendered, '<tool_result name="grep" status="success" results="100" result_count_lower_bound="true" />');
 });
 
 test("buildConversationTextFromEntries redacts secrets and includes richer tool info", () => {
@@ -193,5 +193,7 @@ test("buildConversationTextFromEntries redacts secrets and includes richer tool 
 
 	assert.match(text, /token=\[REDACTED\]/);
 	assert.match(text, /\[REDACTED_EMAIL\]/);
-	assert.match(text, /Assistant used tool: read \(path="src\/app.ts"\)/);
+	assert.match(text, /<user_message>/);
+	assert.match(text, /<assistant_message>/);
+	assert.match(text, /<tool_call name="read" path="src\/app.ts" \/>/);
 });
