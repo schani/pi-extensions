@@ -1,0 +1,28 @@
+{
+  "name": "pi-agent-mood",
+  "version": "0.1.0",
+  "description": "Pi extension that shows the agent's current activity and mood in the footer",
+  "type": "module",
+  "keywords": ["pi-package"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/schani/pi-extensions.git",
+    "directory": "pi-agent-mood"
+  },
+  "homepage": "https://github.com/schani/pi-extensions/tree/main/pi-agent-mood#readme",
+  "bugs": {
+    "url": "https://github.com/schani/pi-extensions/issues"
+  },
+  "files": ["extensions"],
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "check": "node --check extensions/agent-mood.ts && node --check extensions/mood-core.ts"
+  },
+  "pi": {
+    "extensions": ["./extensions"]
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-ai": "*",
+    "@mariozechner/pi-coding-agent": "*"
+  }
+}
