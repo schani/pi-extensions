@@ -1,0 +1,29 @@
+{
+  "name": "pi-companion",
+  "version": "0.1.0",
+  "description": "Pi extension that shows a Glimpse cursor companion with agent activity and mood",
+  "type": "module",
+  "keywords": ["pi-package"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/schani/pi-extensions.git",
+    "directory": "companion"
+  },
+  "homepage": "https://github.com/schani/pi-extensions/tree/main/companion#readme",
+  "bugs": {
+    "url": "https://github.com/schani/pi-extensions/issues"
+  },
+  "files": ["extensions"],
+  "scripts": {
+    "check": "node --check extensions/index.ts && node --check extensions/companion.mjs && node --check extensions/socket-path.mjs && node --check extensions/glimpse-resolver.mjs"
+  },
+  "dependencies": {
+    "glimpseui": "^0.8.0"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*"
+  },
+  "pi": {
+    "extensions": ["./extensions/index.ts"]
+  }
+}
