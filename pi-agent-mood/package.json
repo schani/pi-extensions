@@ -19,7 +19,7 @@
     "check": "node --check extensions/agent-mood.ts && node --check extensions/mood-core.ts"
   },
   "pi": {
-    "extensions": ["./extensions"]
+    "extensions": ["./extensions/agent-mood.ts"]
   },
   "peerDependencies": {
     "@mariozechner/pi-ai": "*",
