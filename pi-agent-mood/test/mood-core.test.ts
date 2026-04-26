@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
 	buildConversationTextFromEntries,
+	evaluationByteLengthFromEntries,
 	findMatchingModels,
 	lastUtf8Bytes,
 	renderMessage,
@@ -48,6 +49,24 @@ test("UTF-8 truncation never splits multibyte characters", () => {
 
 	const tail = lastUtf8Bytes(text, 6);
 	assert.equal(tail, "def");
+});
+
+test("evaluationByteLengthFromEntries counts every assistant tool call as 128 bytes", () => {
+	const total = evaluationByteLengthFromEntries([
+		{
+			type: "message",
+			message: {
+				role: "assistant",
+				content: [
+					{ type: "text", text: "hello" },
+					{ type: "toolCall", name: "read", arguments: { path: "a.ts" } },
+					{ type: "toolCall", name: "bash", arguments: { command: "npm test" } },
+				],
+			},
+		},
+	]);
+
+	assert.equal(total, 5 + 128 * 2);
 });
 
 test("renderToolCall includes read path", () => {
