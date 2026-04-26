@@ -40,6 +40,7 @@ let lastAttemptedAtBytes = 0;
 let inFlight = false;
 let pending = false;
 let latestLiveMessage: unknown;
+let stateEpoch = 0;
 let disposed = false;
 let warnedNoModel = false;
 let currentPi: ExtensionAPI | undefined;
@@ -221,11 +222,12 @@ async function maybeEvaluate(ctx: ExtensionContext, pi: ExtensionAPI, liveMessag
 	inFlight = true;
 	pending = false;
 	lastAttemptedAtBytes = totalBytes;
+	const evaluationEpoch = stateEpoch;
 
 	try {
 		const snapshot = lastUtf8Bytes(conversationText, SNAPSHOT_BYTES);
 		const nextState = await askMoodModel(ctx, pi, snapshot);
-		if (disposed) return;
+		if (disposed || stateEpoch !== evaluationEpoch) return;
 
 		currentState = { ...nextState, totalBytes };
 		if (nextState.error) {
@@ -238,7 +240,7 @@ async function maybeEvaluate(ctx: ExtensionContext, pi: ExtensionAPI, liveMessag
 		}
 		renderStatus(ctx);
 	} catch (error) {
-		if (!disposed) {
+		if (!disposed && stateEpoch === evaluationEpoch) {
 			currentState = {
 				...currentState,
 				error: error instanceof Error ? error.message : String(error),
@@ -265,6 +267,18 @@ function restoreState(ctx: ExtensionContext) {
 			lastAttemptedAtBytes = currentState.totalBytes ?? lastAttemptedAtBytes;
 		}
 	}
+}
+
+function resetMoodForUserMessage(ctx: ExtensionContext, pi: ExtensionAPI) {
+	const branch = ctx.sessionManager.getBranch() as any[];
+	const totalBytes = evaluationScheduleFromEntries(branch).totalBytes;
+	stateEpoch++;
+	pending = false;
+	latestLiveMessage = undefined;
+	lastAttemptedAtBytes = totalBytes;
+	currentState = { totalBytes, updatedAt: Date.now() };
+	pi.appendEntry(CUSTOM_TYPE, currentState);
+	renderStatus(ctx);
 }
 
 async function showMoodModel(ctx: ExtensionCommandContext, pi: ExtensionAPI) {
@@ -308,6 +322,10 @@ export default function agentMoodExtension(pi: ExtensionAPI) {
 	});
 
 	pi.on("message_end", async (event, ctx) => {
+		if ((event.message as { role?: string }).role === "user") {
+			resetMoodForUserMessage(ctx, pi);
+			return;
+		}
 		void maybeEvaluate(ctx, pi, event.message, false);
 	});
 

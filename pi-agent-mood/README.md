@@ -19,6 +19,7 @@ Example footer status:
 - Uses compact tool metadata instead of full tool arguments or outputs
 - Includes diagnostics for model resolution and auth issues
 - Optional detailed widget above the editor
+- Resets the displayed mood on every new user message so stale mood does not carry into the next turn
 
 ## Model priority
 
