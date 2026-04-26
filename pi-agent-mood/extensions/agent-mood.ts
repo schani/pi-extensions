@@ -229,7 +229,7 @@ async function maybeEvaluate(ctx: ExtensionContext, pi: ExtensionAPI, liveMessag
 		const nextState = await askMoodModel(ctx, pi, snapshot);
 		if (disposed || stateEpoch !== evaluationEpoch) return;
 
-		currentState = { ...nextState, totalBytes };
+		currentState = { ...nextState, totalBytes, resetStartBytes: schedule.latestUserStartBytes };
 		if (nextState.error) {
 			if (!warnedNoModel && ctx.hasUI) {
 				ctx.ui.notify(nextState.error, "warning");
@@ -264,19 +264,23 @@ function restoreState(ctx: ExtensionContext) {
 		if (entry.type !== "custom" || entry.customType !== CUSTOM_TYPE) continue;
 		if (entry.data && typeof entry.data === "object") {
 			currentState = entry.data as MoodState;
-			lastAttemptedAtBytes = currentState.totalBytes ?? lastAttemptedAtBytes;
+			if (currentState.mood) {
+				lastAttemptedAtBytes = currentState.totalBytes ?? lastAttemptedAtBytes;
+			} else {
+				lastAttemptedAtBytes = currentState.resetStartBytes ?? currentState.totalBytes ?? lastAttemptedAtBytes;
+			}
 		}
 	}
 }
 
 function resetMoodForUserMessage(ctx: ExtensionContext, pi: ExtensionAPI) {
 	const branch = ctx.sessionManager.getBranch() as any[];
-	const totalBytes = evaluationScheduleFromEntries(branch).totalBytes;
+	const schedule = evaluationScheduleFromEntries(branch);
 	stateEpoch++;
 	pending = false;
 	latestLiveMessage = undefined;
-	lastAttemptedAtBytes = totalBytes;
-	currentState = { totalBytes, updatedAt: Date.now() };
+	lastAttemptedAtBytes = schedule.latestUserStartBytes;
+	currentState = { totalBytes: schedule.totalBytes, resetStartBytes: schedule.latestUserStartBytes, updatedAt: Date.now() };
 	pi.appendEntry(CUSTOM_TYPE, currentState);
 	renderStatus(ctx);
 }

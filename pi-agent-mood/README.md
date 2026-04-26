@@ -47,8 +47,9 @@ pi --agent-mood-models google/gemini-3.1-flash-lite-preview,anthropic/claude-hai
 
 The extension recomputes mood from message growth:
 
-- After each user message, while the current turn is under 5 KB: every 512 B
-- Once the current turn reaches 5 KB: every 2 KB
+- After each user message, first update after 128 B
+- After that, while the current turn is under 5 KB: every 512 B boundary
+- Once the current turn reaches 5 KB: every 2 KB boundary
 - Every assistant tool call counts as 256 B for recompute scheduling
 - Each model call receives the latest 10 KB of rendered snapshot
 

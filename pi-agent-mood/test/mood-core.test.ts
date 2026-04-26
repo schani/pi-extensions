@@ -32,9 +32,11 @@ test("findMatchingModels falls back to provider/id when no exact id exists", () 
 	assert.deepEqual(matches, [{ model: models[0], match: "provider/id" }]);
 });
 
-test("shouldEvaluate uses 512 B steps below 5 KB and 2 KB steps at/above 5 KB", () => {
-	assert.equal(shouldEvaluate(511, 0), false);
-	assert.equal(shouldEvaluate(512, 0), true);
+test("shouldEvaluate uses first 128 B update, then 512 B / 2 KB thresholds", () => {
+	assert.equal(shouldEvaluate(127, 0), false);
+	assert.equal(shouldEvaluate(128, 0), true);
+	assert.equal(shouldEvaluate(511, 128), false);
+	assert.equal(shouldEvaluate(512, 128), true);
 	assert.equal(shouldEvaluate(1023, 512), false);
 	assert.equal(shouldEvaluate(1024, 512), true);
 
@@ -42,9 +44,11 @@ test("shouldEvaluate uses 512 B steps below 5 KB and 2 KB steps at/above 5 KB", 
 	assert.equal(shouldEvaluate(6 * 1024, 4 * 1024), true);
 });
 
-test("shouldEvaluate applies small thresholds after a user-message reset point", () => {
-	assert.equal(shouldEvaluate(100 * 1024 + 511, 99 * 1024, false, 100 * 1024), false);
-	assert.equal(shouldEvaluate(100 * 1024 + 512, 99 * 1024, false, 100 * 1024), true);
+test("shouldEvaluate applies first 128 B and small thresholds after a user-message reset point", () => {
+	assert.equal(shouldEvaluate(100 * 1024 + 127, 99 * 1024, false, 100 * 1024), false);
+	assert.equal(shouldEvaluate(100 * 1024 + 128, 99 * 1024, false, 100 * 1024), true);
+	assert.equal(shouldEvaluate(100 * 1024 + 511, 100 * 1024 + 128, false, 100 * 1024), false);
+	assert.equal(shouldEvaluate(100 * 1024 + 512, 100 * 1024 + 128, false, 100 * 1024), true);
 	assert.equal(shouldEvaluate(100 * 1024 + 1023, 100 * 1024 + 512, false, 100 * 1024), false);
 	assert.equal(shouldEvaluate(100 * 1024 + 1024, 100 * 1024 + 512, false, 100 * 1024), true);
 	assert.equal(shouldEvaluate(100 * 1024 + 6 * 1024, 100 * 1024 + 4 * 1024, false, 100 * 1024), true);

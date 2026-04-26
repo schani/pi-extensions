@@ -5,6 +5,7 @@ export const CUSTOM_TYPE = "agent-mood";
 export const DEFAULT_MODEL_PRIORITY =
 	"google/gemini-3.1-flash-lite-preview,anthropic/claude-haiku-4.5,openai/gpt-5.4-nano";
 export const SMALL_CONVERSATION_BYTES = 5 * 1024;
+export const FIRST_UPDATE_BYTES = 128;
 export const SMALL_UPDATE_STEP_BYTES = 512;
 export const NORMAL_UPDATE_STEP_BYTES = 2 * 1024;
 export const SNAPSHOT_BYTES = 10 * 1024;
@@ -30,6 +31,7 @@ export type MoodState = {
 	updatedAt?: number;
 	totalBytes?: number;
 	error?: string;
+	resetStartBytes?: number;
 };
 
 export type ModelLike = {
@@ -133,9 +135,13 @@ export function shouldEvaluate(totalBytes: number, lastAttemptedAtBytes: number,
 	if (force) return totalBytes > 0;
 	const reset = Math.max(0, Math.min(resetAtBytes, totalBytes));
 	const bytesSinceReset = totalBytes - reset;
-	const bytesSinceLastAttempt = totalBytes - Math.max(lastAttemptedAtBytes, reset);
+	if (bytesSinceReset < FIRST_UPDATE_BYTES) return false;
+
+	const lastSinceReset = Math.max(0, lastAttemptedAtBytes - reset);
+	if (lastSinceReset === 0) return true;
+
 	const step = updateStepFor(bytesSinceReset);
-	return bytesSinceReset >= step && bytesSinceLastAttempt >= step;
+	return Math.floor(bytesSinceReset / step) > Math.floor(lastSinceReset / step);
 }
 
 function pathFromArgs(args: any): string | undefined {
