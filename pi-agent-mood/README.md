@@ -25,10 +25,11 @@ Example footer status:
 
 Default priority:
 
-1. `openai/gpt-oss-120b`
-2. `google/gemini-3.1-flash-lite-preview`
-3. `anthropic/claude-haiku-4.5`
-4. `openai/gpt-5.4-nano`
+1. `deepseek/deepseek-v4-flash`
+2. `openai/gpt-oss-120b`
+3. `google/gemini-3.1-flash-lite-preview`
+4. `anthropic/claude-haiku-4.5`
+5. `openai/gpt-5.4-nano`
 
 These names may resolve to gateway models, for example OpenRouter models whose model IDs include provider prefixes. The resolver first tries exact model-id matches, then falls back to `provider/model` matching.
 
@@ -41,7 +42,7 @@ pi --agent-mood-model openrouter/google/gemini-3.1-flash-lite-preview
 Override the full priority list:
 
 ```bash
-pi --agent-mood-models openai/gpt-oss-120b,google/gemini-3.1-flash-lite-preview,anthropic/claude-haiku-4.5,openai/gpt-5.4-nano
+pi --agent-mood-models deepseek/deepseek-v4-flash,openai/gpt-oss-120b,google/gemini-3.1-flash-lite-preview,anthropic/claude-haiku-4.5,openai/gpt-5.4-nano
 ```
 
 ## Update cadence
